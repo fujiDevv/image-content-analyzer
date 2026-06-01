@@ -1,65 +1,53 @@
-// Simple in-memory cache implementation
-interface CacheEntry {
-  data: any;
+import { type ICacheAdapter } from './ICacheAdapter';
+
+interface CacheEntry<T = any> {
+  data: T;
   expiry: number;
 }
 
-const cache = new Map<string, CacheEntry>();
+export class MemoryCacheAdapter implements ICacheAdapter {
+  private cache = new Map<string, CacheEntry>();
 
-/**
- * Set cache entry with expiration
- */
-export function safeSetCache(key: string, data: any, ttlSeconds: number): void {
-  try {
-    const expiry = Date.now() + (ttlSeconds * 1000);
-    cache.set(key, { data, expiry });
-  } catch (error) {
-    console.warn('Cache set failed:', error);
-  }
-}
-
-/**
- * Get cache entry if not expired
- */
-export function safeGetCache(key: string): any | null {
-  try {
-    const entry = cache.get(key);
-    if (!entry) return null;
-    
-    if (Date.now() > entry.expiry) {
-      cache.delete(key);
+  get<T>(key: string): T | null {
+    try {
+      const entry = this.cache.get(key);
+      if (!entry) return null;
+      
+      if (Date.now() > entry.expiry) {
+        this.cache.delete(key);
+        return null;
+      }
+      
+      return entry.data as T;
+    } catch (error) {
+      console.warn('MemoryCache get failed:', error);
       return null;
     }
-    
-    return entry.data;
-  } catch (error) {
-    console.warn('Cache get failed:', error);
-    return null;
   }
-}
 
-/**
- * Clear expired entries
- */
-export function clearExpiredCache(): void {
-  try {
+  set<T>(key: string, data: T, ttlSeconds: number): void {
+    try {
+      const expiry = Date.now() + (ttlSeconds * 1000);
+      this.cache.set(key, { data, expiry });
+    } catch (error) {
+      console.warn('MemoryCache set failed:', error);
+    }
+  }
+
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  clearExpired(): void {
     const now = Date.now();
-    for (const [key, entry] of cache.entries()) {
+    for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiry) {
-        cache.delete(key);
+        this.cache.delete(key);
       }
     }
-  } catch (error) {
-    console.warn('Cache cleanup failed:', error);
   }
 }
-
-/**
- * Clear all cache entries
- */
-export function clearCache(): void {
-  cache.clear();
-}
-
-// Export the cache instance for advanced usage
-export { cache };

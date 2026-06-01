@@ -1,6 +1,7 @@
 import { analyzeImageForExplicitContent, type ImageAnalysisDetail, type ExplicitContentAnalysis } from './skinDetection';
+import { analyzeImageWithAI } from './aiDetection';
 import { analyzeImageText, type TextAnalysisResult } from './tesseractDetection';
-import { cache, safeGetCache, safeSetCache } from './utils/cache';
+import { config } from './config';
 
 /**
  * Add timeout wrapper for OCR analysis
@@ -8,7 +9,7 @@ import { cache, safeGetCache, safeSetCache } from './utils/cache';
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => 
+    new Promise<T>((_, reject) =>
       setTimeout(() => reject(new Error('Analysis timeout')), timeoutMs)
     )
   ]);
@@ -22,17 +23,22 @@ export async function analyzeImageFast(imageUrl: string): Promise<ImageAnalysisD
 
   // Generate cache key for single image analysis
   const cacheKey = `image-analysis:${imageUrl}`;
-  
+
   // Check cache first
-  const cachedResult = safeGetCache(cacheKey);
+  const cachedResult = config.cacheAdapter.get<ImageAnalysisDetail>(cacheKey);
   if (cachedResult) {
     console.log(`Cache hit for image analysis: ${imageUrl}`);
     return cachedResult as ImageAnalysisDetail;
   }
 
   try {
-    // Always do skin detection (fast)
-    const skinAnalysis = await analyzeImageForExplicitContent(imageUrl);
+    // 1. Perform detection first (skin heuristics or AI)
+    let skinAnalysis;
+    if (config.detectionMode === 'ai') {
+      skinAnalysis = await analyzeImageWithAI(imageUrl);
+    } else {
+      skinAnalysis = await analyzeImageForExplicitContent(imageUrl);
+    }
 
     // If skin analysis already shows high confidence, skip OCR
     if (skinAnalysis.isExplicit && skinAnalysis.confidence > 0.7) {
@@ -51,7 +57,7 @@ export async function analyzeImageFast(imageUrl: string): Promise<ImageAnalysisD
         }
       };
       // Cache the result for 5 minutes
-      safeSetCache(cacheKey, result, 300);
+      config.cacheAdapter.set(cacheKey, result, 300);
       return result;
     }
 
@@ -83,7 +89,7 @@ export async function analyzeImageFast(imageUrl: string): Promise<ImageAnalysisD
     };
 
     // Cache the result for 5 minutes
-    safeSetCache(cacheKey, result, 300);
+    config.cacheAdapter.set(cacheKey, result, 300);
     return result;
 
   } catch (error: any) {
@@ -102,7 +108,7 @@ export async function analyzeImageFast(imageUrl: string): Promise<ImageAnalysisD
       }
     };
     // Cache failed result for 1 minute to prevent repeated failures
-    safeSetCache(cacheKey, result, 60);
+    config.cacheAdapter.set(cacheKey, result, 60);
     return result;
   }
 }
@@ -115,9 +121,9 @@ export async function analyzeImagesBatch(imageUrls: string[]): Promise<ExplicitC
 
   // Generate cache key for batch analysis
   const batchCacheKey = `batch-image-analysis:${imageUrls.join(',')}`;
-  
+
   // Check cache for batch result
-  const cachedBatchResult = safeGetCache(batchCacheKey);
+  const cachedBatchResult = config.cacheAdapter.get<ExplicitContentAnalysis>(batchCacheKey);
   if (cachedBatchResult) {
     console.log('Cache hit for batch image analysis');
     return cachedBatchResult as ExplicitContentAnalysis;
@@ -130,16 +136,16 @@ export async function analyzeImagesBatch(imageUrls: string[]): Promise<ExplicitC
   for (let i = 0; i < imageUrls.length; i += batchSize) {
     const batch = imageUrls.slice(i, i + batchSize);
     const batchPromises = batch.map(url => analyzeImageFast(url));
-    
+
     const batchResults = await Promise.all(batchPromises);
     results.push(...batchResults);
-    
-    console.log(`Completed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(imageUrls.length/batchSize)}`);
+
+    console.log(`Completed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(imageUrls.length / batchSize)}`);
   }
 
   // Process results
   const explicitImages = results.filter(analysis => analysis.isExplicit);
-  const imagesWithExplicitText = results.filter(analysis => 
+  const imagesWithExplicitText = results.filter(analysis =>
     analysis.textAnalysis?.hasExplicitText && analysis.textAnalysis.confidence > 0.3
   );
 
@@ -154,10 +160,10 @@ export async function analyzeImagesBatch(imageUrls: string[]): Promise<ExplicitC
   const hasExplicitContent = explicitImages.length > 0;
   const hasExplicitText = imagesWithExplicitText.length > 0;
 
-  const overallConfidence = explicitImages.length > 0 ? 
+  const overallConfidence = explicitImages.length > 0 ?
     Math.max(...explicitImages.map(img => img.confidence)) : 0;
-    
-  const textConfidence = imagesWithExplicitText.length > 0 ? 
+
+  const textConfidence = imagesWithExplicitText.length > 0 ?
     Math.max(...imagesWithExplicitText.map(img => img.textAnalysis?.confidence || 0)) : 0;
 
   const batchResult = {
@@ -170,7 +176,7 @@ export async function analyzeImagesBatch(imageUrls: string[]): Promise<ExplicitC
   };
 
   // Cache batch result for 5 minutes
-  safeSetCache(batchCacheKey, batchResult, 300);
+  config.cacheAdapter.set(batchCacheKey, batchResult, 300);
   return batchResult;
 }
 

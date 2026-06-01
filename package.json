@@ -1,10 +1,18 @@
 {
   "name": "image-content-analyzer",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "prepublish": "npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -20,10 +28,12 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/joshuasarmiento/image-content-analyzer.git"
+    "url": "https://github.com/fujiDevv/image-content-analyzer.git"
   },
   "description": "A comprehensive image analysis library for detecting explicit content using skin detection and OCR text analysis",
   "dependencies": {
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "nsfwjs": "^4.3.0",
     "sharp": "^0.34.3",
     "tesseract.js": "^6.0.1"
   },

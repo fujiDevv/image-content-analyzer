@@ -1,5 +1,6 @@
 // utils/tesseractDetection.ts
 import Tesseract from 'tesseract.js';
+import { config } from './config';
 
 export interface TextAnalysisResult {
   hasExplicitText: boolean;
@@ -63,8 +64,9 @@ function analyzeTextContent(text: string): {
   const categories: Set<string> = new Set();
   let totalMatches = 0;
 
+  const keywordsToUse = config.customOcrBlocklist || EXPLICIT_KEYWORDS;
   // Check each category
-  Object.entries(EXPLICIT_KEYWORDS).forEach(([category, keywords]) => {
+  Object.entries(keywordsToUse).forEach(([category, keywords]) => {
     keywords.forEach(keyword => {
       // Check for exact word matches and partial matches
       const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
