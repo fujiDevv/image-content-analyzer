@@ -61,6 +61,10 @@ configureAnalyzer({
 });
 ```
 
+## Contributing
+
+Contributions are always welcome! Please see the [CONTRIBUTING.md](./CONTRIBUTING.md) file for guidelines on how to get started.
+
 ## License
 
-MIT License. See `LICENSE` for more information.
+MIT License. See the [LICENSE](./LICENSE) file for more information.
