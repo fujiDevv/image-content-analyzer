@@ -1,5 +1,9 @@
 # Image Content Analyzer
 
+[![npm version](https://img.shields.io/npm/v/image-content-analyzer.svg)](https://www.npmjs.com/package/image-content-analyzer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
+
 A comprehensive Node.js library for analyzing images to detect explicit content. It now features a pluggable architecture, optional AI-based detection, and customizable OCR blocklists!
 
 ## Features
