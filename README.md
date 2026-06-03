@@ -18,10 +18,46 @@ A comprehensive Node.js library for analyzing images to detect explicit content.
 
 ## Installation
 
+### npm
+
 ```bash
 npm install image-content-analyzer
-# If you plan to use the AI detection mode, also install the peer dependencies:
+```
+
+### yarn
+
+```bash
+yarn add image-content-analyzer
+```
+
+### pnpm
+
+```bash
+pnpm add image-content-analyzer
+```
+
+### bun
+
+```bash
+bun add image-content-analyzer
+```
+
+### AI Detection (Optional)
+
+If you plan to use the AI detection mode, also install the peer dependencies:
+
+```bash
+# npm
 npm install nsfwjs @tensorflow/tfjs-node
+
+# yarn
+yarn add nsfwjs @tensorflow/tfjs-node
+
+# pnpm
+pnpm add nsfwjs @tensorflow/tfjs-node
+
+# bun
+bun add nsfwjs @tensorflow/tfjs-node
 ```
 
 ## Quick Start
