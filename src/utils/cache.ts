@@ -27,6 +27,9 @@ export class MemoryCacheAdapter implements ICacheAdapter {
 
   set<T>(key: string, data: T, ttlSeconds: number): void {
     try {
+      if (this.cache.size > 100) {
+        this.clearExpired();
+      }
       const expiry = Date.now() + (ttlSeconds * 1000);
       this.cache.set(key, { data, expiry });
     } catch (error) {

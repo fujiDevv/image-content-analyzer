@@ -14,13 +14,16 @@ export {
 export { 
   analyzeImageText,
   analyzeMultipleImageTexts,
+  terminateOCR,
   type TextAnalysisResult 
 } from './tesseractDetection';
 
 // Default export for convenience
 import { analyzeImageFast, analyzeImagesBatch } from './combinedImageAnalysis';
+import { terminateOCR } from './tesseractDetection';
 
 export default {
   analyzeImageFast,
-  analyzeImagesBatch
+  analyzeImagesBatch,
+  terminateOCR
 };

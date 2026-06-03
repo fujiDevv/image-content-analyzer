@@ -19,5 +19,5 @@ export const config: AnalyzerConfig = {
 export function configureAnalyzer(options: Partial<AnalyzerConfig>): void {
   if (options.detectionMode) config.detectionMode = options.detectionMode;
   if (options.cacheAdapter) config.cacheAdapter = options.cacheAdapter;
-  if (options.customOcrBlocklist) config.customOcrBlocklist = options.customOcrBlocklist;
+  if ('customOcrBlocklist' in options) config.customOcrBlocklist = options.customOcrBlocklist;
 }

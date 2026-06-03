@@ -13,11 +13,14 @@ export async function loadAIModel() {
 }
 
 export async function analyzeImageWithAI(imageUrl: string): Promise<ImageAnalysisResult> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 seconds timeout
   try {
     const loadedModel = await loadAIModel();
     
     // Fetch image
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
@@ -47,6 +50,7 @@ export async function analyzeImageWithAI(imageUrl: string): Promise<ImageAnalysi
       confidence: Math.round(explicitProbability * 100) / 100
     };
   } catch (error: any) {
+    clearTimeout(timeoutId);
     console.warn('AI analysis failed:', error.message);
     return {
       isExplicit: false,

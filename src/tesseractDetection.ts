@@ -1,5 +1,5 @@
 // utils/tesseractDetection.ts
-import Tesseract from 'tesseract.js';
+import { createWorker, createScheduler } from 'tesseract.js';
 import { config } from './config';
 
 export interface TextAnalysisResult {
@@ -38,6 +38,49 @@ const EXPLICIT_KEYWORDS = {
   ]
 };
 
+const regexCache = new Map<string, RegExp>();
+
+function getRegexForKeyword(keyword: string): RegExp {
+  const cached = regexCache.get(keyword);
+  if (cached) return cached;
+
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Match word boundary at start, keyword, optional common suffixes (s, es, ed, ing, er, ers), and word boundary at end
+  const regex = new RegExp(`\\b${escaped}(?:s|es|ed|ing|er|ers)?\\b`, 'i');
+  regexCache.set(keyword, regex);
+  return regex;
+}
+
+let scheduler: any = null;
+let schedulerPromise: Promise<any> | null = null;
+
+async function getScheduler(): Promise<any> {
+  if (schedulerPromise) {
+    return schedulerPromise;
+  }
+
+  schedulerPromise = (async () => {
+    const s = createScheduler();
+    const worker = await createWorker('eng');
+    s.addWorker(worker);
+    scheduler = s;
+    return s;
+  })();
+
+  return schedulerPromise;
+}
+
+/**
+ * Terminate the OCR scheduler and free resources.
+ */
+export async function terminateOCR(): Promise<void> {
+  if (scheduler) {
+    await scheduler.terminate();
+    scheduler = null;
+    schedulerPromise = null;
+  }
+}
+
 /**
  * Clean and normalize text for analysis
  */
@@ -58,7 +101,6 @@ function analyzeTextContent(text: string): {
   confidence: number;
 } {
   const normalizedText = normalizeText(text);
-  const words = normalizedText.split(' ');
   
   const detectedWords: string[] = [];
   const categories: Set<string> = new Set();
@@ -68,9 +110,8 @@ function analyzeTextContent(text: string): {
   // Check each category
   Object.entries(keywordsToUse).forEach(([category, keywords]) => {
     keywords.forEach(keyword => {
-      // Check for exact word matches and partial matches
-      const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-      if (regex.test(normalizedText) || normalizedText.includes(keyword)) {
+      const regex = getRegexForKeyword(keyword);
+      if (regex.test(normalizedText)) {
         detectedWords.push(keyword);
         categories.add(category);
         totalMatches++;
@@ -95,14 +136,9 @@ export async function analyzeImageText(imageUrl: string): Promise<TextAnalysisRe
   try {
     console.log('Starting OCR analysis for:', imageUrl);
 
+    const ocrScheduler = await getScheduler();
     // Perform OCR on the image
-    const { data } = await Tesseract.recognize(imageUrl, 'eng', {
-      logger: m => {
-        if (m.status === 'recognizing text') {
-          // console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
-        }
-      }
-    });
+    const { data } = await ocrScheduler.addJob('recognize', imageUrl);
 
     const extractedText = data.text?.trim() || '';
     

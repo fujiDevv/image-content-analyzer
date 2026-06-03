@@ -26,7 +26,7 @@ export interface ExplicitContentAnalysis {
 /**
  * Enhanced skin detection function
  */
-function isSkinPixel(r: any, g: any, b: any) {
+function isSkinPixel(r: number, g: number, b: number): boolean {
   // RGB classifier
   const rgbClassifier = (r > 95) && (g > 40 && g < 100) && (b > 20) && 
     ((Math.max(r, g, b) - Math.min(r, g, b)) > 15) && 
@@ -71,9 +71,12 @@ function isSkinPixel(r: any, g: any, b: any) {
  * Analyze image for explicit content
  */
 export async function analyzeImageForExplicitContent(imageUrl: string): Promise<ImageAnalysisResult> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 seconds timeout
   try {
     // Fetch image from URL
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
@@ -138,6 +141,7 @@ export async function analyzeImageForExplicitContent(imageUrl: string): Promise<
     };
     
   } catch (error: any) {
+    clearTimeout(timeoutId);
     console.warn('Image analysis failed:', error.message);
     return {
       isExplicit: false,
