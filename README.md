@@ -16,6 +16,19 @@ A comprehensive Node.js library for analyzing images to detect explicit content.
 - **Dual Build**: Fully supports both CommonJS (CJS) and ES Modules (ESM).
 - **TypeScript Support**: Full TypeScript definitions included.
 
+## Detection Modes: Limitations & Accuracy
+
+This library provides two primary modes of detection to help you balance execution speed and analytical accuracy depending on your specific use case.
+
+### Heuristic Mode (Fast)
+- **Best for:** High-volume batch processing, illustrations, and environments where execution speed is the absolute priority.
+- **Limitations:** This mode relies purely on pixel-level color space analysis (RGB, Normalized RGB, and HSV). Because it evaluates pixels in isolation without understanding the surrounding context, it is "color-blind." It is highly prone to **false positives on earth tones**. Objects like sunlit rocks, sand, wood grain, and warm lighting share the exact same hue and saturation wavelengths as human skin, which can cause these textures to be incorrectly flagged as explicit content.
+
+### AI Detection Mode (High Accuracy)
+- **Best for:** Complex, real-world photography and applications requiring strict accuracy.
+- **Accuracy:** By configuring `detectionMode: 'ai'`, the analyzer uses TensorFlow.js and `nsfwjs` to evaluate edges, shapes, and contextual meaning. The AI understands the visual difference between a person and a beach scene, effectively eliminating the false positives caused by heuristic pixel matching.
+
+
 ## Installation
 
 ### npm
